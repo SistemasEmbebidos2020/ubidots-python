@@ -14,7 +14,7 @@ Ubidots for python is available in PyPI and you can install it from the command 
 
 .. code-block:: bash
 
-    $ pip install ubidots==1.6.1
+    $ pip install ubidots==1.6.6
 
 Don't forget to use sudo if necessary.
 
@@ -36,24 +36,31 @@ If you are using Microsoft Windows you can install pip from `here <http://www.lf
 Connecting to the API
 ----------------------
 
-Before playing with the API you must be able to connect to it using your private API key, which can be found `in your profile <http://app.ubidots.com/userdata/api/>`_.
+Before playing with the API you must be able to connect to it using an API token, which can be found `in your profile <http://app.ubidots.com/userdata/api/>`_.
 
 If you don't have an account yet, you can `create one here <http://app.ubidots.com/accounts/signup/>`_.
 
-Once you have your API key, you can connect to the API by creating an ApiClient instance. Let's assume your API key is: "7fj39fk3044045k89fbh34rsd9823jkfs8323". Then your code would look like this:
+Once you have your token, you can connect to the API by creating an ApiClient instance. Let's assume your token is: "f9iP6BpxpviO06EbebukACqEZcQMtM". Then your code would look like this:
 
 
 .. code-block:: python
 
     from ubidots import ApiClient
 
-    api = ApiClient('7fj39fk3044045k89fbh34rsd9823jkfs8323')
+    api = ApiClient(token='f9iP6BpxpviO06EbebukACqEZcQMtM')
 
+If you're using an independent container, you'll have to chagne the API BASE URL:
 
-Now you have an instance of ApiClient ("api") which can be used to connect to the API service.
+.. code-block:: python
 
-Saving a new Value to a Variable
---------------------------------
+    from ubidots import ApiClient
+
+    api = ApiClient(token="4b00-xxxxxxxxxxxxxxxxxxx", base_url="http://yourcompanyname.api.ubidots.com/api/v1.6/")
+
+Now you have an instance of ApiClient ("api") which can be used to connect to the API service. 
+
+Saving a Value to a Variable
+----------------------------
 
 Retrieve the variable you'd like the value to be saved to:
 
@@ -66,6 +73,12 @@ Given the instantiated variable, you can save a new value with the following lin
 .. code-block:: python
 
     new_value = my_variable.save_value({'value': 10})
+    
+Here we'll send some GPS coordinates as an example:
+
+.. code-block:: python
+
+    new_value = my_variable.save_value({'value':10, 'context':{'lat': 33.0822, 'lng': -117.24123}})
 
 You can also specify a timestamp (optional):
 
@@ -105,16 +118,24 @@ The 'name' and 'unit' keys are required.
 Saving Values in Bulk
 ---------------------
 
-Values may also be added in bulk. This is especially useful when data is gathered offline and connection to the internet is limited.
+This method used the "collections" API endpoints: http://ubidots.com/docs/api/v1_6/collections
+
+To save several values to a single variable:
 
 .. code-block:: python
 
    new_variable.save_values([
-       {'timestamp': 1380558972614, 'value': 20},
+       {'timestamp': 1380558972614, 'value': 20,'context':{'lat': 33.0822, 'lng': -117.24123}},
        {'timestamp': 1380558972915, 'value': 40},
        {'timestamp': 1380558973516, 'value': 50},
        {'timestamp': 1380558973617, 'value': 30}
    ])
+
+To update several variables in a single request:
+
+.. code-block:: python
+
+    api.save_collection([{'variable': '557f686f7625426a41a42f49', 'value': 10}, {'variable': '557f68747625426b97263cba', 'value':20}])
 
 
 Getting Values
@@ -126,13 +147,33 @@ If you only want the last N values call the method with the number of elements y
 
 .. code-block:: python
 
-    # Getting all the values from the server. Note that this could result in a
-    # lot of requests, and potentially violate your requests per second limit.
+    # Getting all the values from the server. WARNING: If your variable has millions of datapoints, then this will take forever or break your code!
     all_values = new_variable.get_values()
     
     # If you want just the last 100 values you can use:
     some_values = new_variable.get_values(100)
+
+Getting the Last Value of a Variable
+------------------------------------
+
+To get the last value of a variable, get a single item in the get_values method:
+
+.. code-block:: python
+
+    last_value = new_variable.get_values(1)
+
+Then select the first item of the list (last_value[0]), which is a dict, and retrieve the "value" key:
+
+.. code-block:: python
+
+    print last_value[0]['value']
     
+    # Then you can read this value and do something:
+    
+    if last_value[0]['value']:
+        print "Switch is ON"
+    else:
+        print "Switch is OFF"
 
 Getting a group of Data sources
 --------------------------------
